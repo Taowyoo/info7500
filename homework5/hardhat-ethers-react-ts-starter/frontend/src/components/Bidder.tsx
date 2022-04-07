@@ -174,15 +174,24 @@ export function Bidder(): ReactElement {
     deployDutchAuctionContract(bidSigner);
   }
 
-  async function handleBid(event: MouseEvent<HTMLButtonElement>): Promise<void> {
+  async function handleBid(
+    event: MouseEvent<HTMLButtonElement>
+  ): Promise<void> {
     event.preventDefault();
     if (bidPrice <= 0) {
-      window.alert("Bid price should > 0");
+      window.alert('Bid price should > 0');
       return;
     }
-    const options = {value: ethers.utils.parseEther(ethers.utils.formatEther(bidPrice))}
+    const options = {
+      value: ethers.utils.parseEther(ethers.utils.formatEther(bidPrice))
+    };
     if (bidDutchAuctionContract) {
-      await bidDutchAuctionContract.bid(options);
+      const res = await bidDutchAuctionContract.bid(options);
+      if (!(res instanceof Error)) {
+        window.alert('Bid successfully with ' + bidPrice + ' wei');
+      } else {
+        window.alert('Failed to bid:\n' + res.message);
+      }
     }
   }
 
