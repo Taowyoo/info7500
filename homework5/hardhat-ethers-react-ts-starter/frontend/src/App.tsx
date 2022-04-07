@@ -1,10 +1,10 @@
 import { ReactElement } from 'react';
 import styled from 'styled-components';
 import { ActivateDeactivate } from './components/ActivateDeactivate';
-import { Greeter } from './components/Greeter';
+import { DutchAuction } from './components/DutchAuction';
 import { SectionDivider } from './components/SectionDivider';
-import { SignMessage } from './components/SignMessage';
 import { WalletStatus } from './components/WalletStatus';
+import { Bidder } from './components/Bidder';
 
 const StyledAppDiv = styled.div`
   display: grid;
@@ -18,9 +18,9 @@ export function App(): ReactElement {
       <SectionDivider />
       <WalletStatus />
       <SectionDivider />
-      <SignMessage />
+      <DutchAuction />
       <SectionDivider />
-      <Greeter />
+      <Bidder />
     </StyledAppDiv>
   );
 }
