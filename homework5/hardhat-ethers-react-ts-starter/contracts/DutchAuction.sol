@@ -2,14 +2,14 @@
 pragma solidity ^0.8.0;
 
 contract DutchAuction {
-  address private _seller;
-  uint256 private _reservePrice;
-  address private _judgeAddress;
-  uint256 private _numBlocksAuctionOpen;
-  uint256 private _offerPriceDecrement;
+  uint256 public _reservePrice;
+  uint256 public _numBlocksAuctionOpen;
+  uint256 public _offerPriceDecrement;
+  uint256 public _acceptedBid;
   uint256 private _beginBlockNum;
+  address private _seller;
+  address private _judgeAddress;
   address private _acceptedBidderAddress;
-  uint256 private _acceptedBid;
   bool private _finalized = false;
   bool private _gotAcceptableBid = false;
 
