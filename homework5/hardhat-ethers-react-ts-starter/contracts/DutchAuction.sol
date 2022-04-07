@@ -2,16 +2,16 @@
 pragma solidity ^0.8.0;
 
 contract DutchAuction {
-  uint256 public _reservePrice;
-  uint256 public _numBlocksAuctionOpen;
-  uint256 public _offerPriceDecrement;
-  uint256 public _acceptedBid;
-  uint256 public _beginBlockNum;
+  uint256 private _reservePrice;
+  uint256 private _numBlocksAuctionOpen;
+  uint256 private _offerPriceDecrement;
+  uint256 private _acceptedBid;
+  uint256 private _beginBlockNum;
   address private _seller;
   address private _judgeAddress;
   address private _acceptedBidderAddress;
-  bool public _finalized = false;
-  bool public _gotAcceptableBid = false;
+  bool private _finalized = false;
+  bool private _gotAcceptableBid = false;
 
   constructor(
     uint256 reservePrice,
@@ -25,6 +25,30 @@ contract DutchAuction {
     _numBlocksAuctionOpen = numBlocksAuctionOpen;
     _offerPriceDecrement = offerPriceDecrement;
     _beginBlockNum = block.number;
+  }
+
+  function getAuctionState()
+    public
+    view
+    returns (
+      uint256,
+      uint256,
+      uint256,
+      uint256,
+      uint256,
+      bool,
+      bool
+    )
+  {
+    return (
+      _reservePrice,
+      _numBlocksAuctionOpen,
+      _offerPriceDecrement,
+      _acceptedBid,
+      _beginBlockNum,
+      _finalized || ((_numBlocksAuctionOpen + _beginBlockNum) <= block.number),
+      _gotAcceptableBid
+    );
   }
 
   function bid() public payable {

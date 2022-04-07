@@ -103,7 +103,7 @@ export function DutchAuction(): ReactElement {
     event.preventDefault();
 
     // only deploy the DutchAuction contract one time, when a signer is defined
-    if (DutchAuctionContract || !signer) {
+    if (!signer) {
       return;
     }
 
@@ -254,10 +254,10 @@ export function DutchAuction(): ReactElement {
         <div></div>
       </StyledAuctionDiv>
       <StyledDeployContractButton
-        disabled={!active || DutchAuctionContract ? true : false}
+        disabled={!active ? true : false}
         style={{
-          cursor: !active || DutchAuctionContract ? 'not-allowed' : 'pointer',
-          borderColor: !active || DutchAuctionContract ? 'unset' : 'blue'
+          cursor: !active ? 'not-allowed' : 'pointer',
+          borderColor: !active ? 'unset' : 'blue'
         }}
         onClick={handleDeployContract}
       >

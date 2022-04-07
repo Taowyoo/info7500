@@ -1,5 +1,5 @@
 import { useWeb3React } from '@web3-react/core';
-import { Contract, ethers, Signer } from 'ethers';
+import { BigNumber, Contract, ethers, Signer } from 'ethers';
 import {
   ChangeEvent,
   MouseEvent,
@@ -49,7 +49,6 @@ const StyledButton = styled.button`
 export function Bidder(): ReactElement {
   const context = useWeb3React<Provider>();
   const { library, active } = context;
-  let interval: NodeJS.Timer;
   const DEFAULT_NUMBER_VAL = -1;
 
   const [bidSigner, setBidSigner] = useState<Signer>();
@@ -64,6 +63,7 @@ export function Bidder(): ReactElement {
     useState<number>(DEFAULT_NUMBER_VAL);
 
   const [curBlockNum, setCurBlockNum] = useState<number>(DEFAULT_NUMBER_VAL);
+  const [bidPrice, setBidPrice] = useState<number>(DEFAULT_NUMBER_VAL);
 
   const [beginBlockNum, setBeginBlockNum] =
     useState<number>(DEFAULT_NUMBER_VAL);
@@ -87,19 +87,18 @@ export function Bidder(): ReactElement {
     setBidSigner(library.getSigner());
   }, [library]);
 
-  async function updateContractInfo() {
-    if(!bidDutchAuctionContract){
-      return;
-    }
-    const data = await Promise.all([
-      bidDutchAuctionContract._reservePrice(),
-      bidDutchAuctionContract._numBlocksAuctionOpen(),
-      bidDutchAuctionContract._offerPriceDecrement(),
-      bidDutchAuctionContract._acceptedBid(),
-      bidDutchAuctionContract._beginBlockNum(),
-      bidDutchAuctionContract._finalized(),
-      bidDutchAuctionContract._gotAcceptableBid()
-    ]);
+  async function updateContractInfo(contract: Contract) {
+    console.log('updateContractInfo: ', contract);
+    const data: [
+      BigNumber,
+      BigNumber,
+      BigNumber,
+      BigNumber,
+      BigNumber,
+      boolean,
+      boolean
+    ] = await contract.getAuctionState();
+    console.log('data: ', data);
     if (!(data instanceof Error)) {
       const [
         _reservePrice,
@@ -110,11 +109,11 @@ export function Bidder(): ReactElement {
         _finalized,
         _gotAcceptableBid
       ] = data;
-      setReservePrice(_reservePrice);
-      setNumBlocksAuctionOpen(_numBlocksAuctionOpen);
-      setOfferPriceDecrement(_offerPriceDecrement);
-      setAcceptedBid(_acceptedBid);
-      setBeginBlockNum(_beginBlockNum);
+      setReservePrice(_reservePrice.toNumber());
+      setNumBlocksAuctionOpen(_numBlocksAuctionOpen.toNumber());
+      setOfferPriceDecrement(_offerPriceDecrement.toNumber());
+      setAcceptedBid(_acceptedBid.toNumber());
+      setBeginBlockNum(_beginBlockNum.toNumber());
       setFinalized(_finalized);
       setGotAcceptableBid(_gotAcceptableBid);
     } else {
@@ -146,14 +145,25 @@ export function Bidder(): ReactElement {
           signer
         );
         setBidDutchAuctionContract(DutchAuctionContract);
-
+        setBidDutchAuctionContractAddr(DutchAuctionContract.address);
         window.alert(
           `Connected to DutchAuction Contract: ${DutchAuctionContract.address}`
         );
-
-        setBidDutchAuctionContractAddr(DutchAuctionContract.address);
-
-        await updateContractInfo();
+        await updateContractInfo(DutchAuctionContract);
+        setInterval(async () => {
+          if (library) {
+            try {
+              const newBlockNumber: number = await library.getBlockNumber();
+              setCurBlockNum(newBlockNumber);
+            } catch (error: any) {
+              window.alert(
+                'Error!' +
+                  (error && error.message ? `\n\n${error.message}` : '')
+              );
+            }
+          }
+          await updateContractInfo(DutchAuctionContract);
+        }, 1000);
       } catch (error: any) {
         window.alert(
           'Error!' + (error && error.message ? `\n\n${error.message}` : '')
@@ -164,8 +174,21 @@ export function Bidder(): ReactElement {
     deployDutchAuctionContract(bidSigner);
   }
 
-  function handleBid(event: MouseEvent<HTMLButtonElement>): void {
+  async function handleBid(event: MouseEvent<HTMLButtonElement>): Promise<void> {
     event.preventDefault();
+    if (bidPrice <= 0) {
+      window.alert("Bid price should > 0");
+      return;
+    }
+    const options = {value: ethers.utils.parseEther(ethers.utils.formatEther(bidPrice))}
+    if (bidDutchAuctionContract) {
+      await bidDutchAuctionContract.bid(options);
+    }
+  }
+
+  function handleBidPriceChange(event: ChangeEvent<HTMLInputElement>): void {
+    event.preventDefault();
+    setBidPrice(parseInt(event.target.value));
   }
 
   function handleContractAddressChange(
@@ -202,7 +225,16 @@ export function Bidder(): ReactElement {
           Connect to DutchAuction Contract
         </StyledConnectContractButton>
 
-        <div></div>
+        <StyledLabel htmlFor="bidPriceInput">Bid price (unit: wei)</StyledLabel>
+        <StyledInput
+          id="bidPriceInput"
+          type="number"
+          placeholder={
+            bidDutchAuctionContract ? '' : '<Contract not yet connected>'
+          }
+          onChange={handleBidPriceChange}
+          style={{ fontStyle: bidDutchAuctionContract ? 'normal' : 'italic' }}
+        ></StyledInput>
         <StyledButton
           disabled={!active || (!bidDutchAuctionContract ? true : false)}
           style={{
@@ -214,7 +246,6 @@ export function Bidder(): ReactElement {
         >
           Bid
         </StyledButton>
-        <div></div>
 
         <StyledLabel>Contract address</StyledLabel>
         <div>
@@ -277,9 +308,12 @@ export function Bidder(): ReactElement {
             gotAcceptableBid ? (
               acceptedBid
             ) : (
-              reservePrice +
-              (beginBlockNum + numBlocksAuctionOpen - curBlockNum) *
-                offerPriceDecrement
+              Math.max(
+                reservePrice,
+                reservePrice +
+                  (beginBlockNum + numBlocksAuctionOpen - curBlockNum) *
+                    offerPriceDecrement
+              )
             )
           ) : (
             <em>{`<Contract not yet connected>`}</em>
