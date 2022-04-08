@@ -46,7 +46,7 @@ contract DutchAuction {
       _offerPriceDecrement,
       _acceptedBid,
       _beginBlockNum,
-      _finalized || ((_numBlocksAuctionOpen + _beginBlockNum) <= block.number),
+      _finalized,
       _gotAcceptableBid
     );
   }
